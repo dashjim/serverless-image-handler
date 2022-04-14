@@ -25,10 +25,12 @@ export class InterlaceAction implements IImageAction {
 
 
   public async process(ctx: IImageContext, params: string[]): Promise<void> {
-    const opt = this.validate(params);
-    if (opt.interlace) {
-      ctx.image.jpeg({ progressive: true });
+    const metadata = await ctx.image.metadata();
+    if (['jpeg', 'jpg'].includes(metadata.format || '')){
+      const opt = this.validate(params);
+      if (opt.interlace) {
+        ctx.image.jpeg({ progressive: true });
+      }
     }
-
   }
 }

@@ -51,3 +51,13 @@ test('quality action', async () => {
   const { info } = await ctx.image.toBuffer({ resolveWithObject: true });
   expect(info.format).toBe(sharp.format.jpeg.id);
 });
+
+
+test('skip the gif', async () => {
+  const image = sharp((await fixtureStore.get('example.gif')).buffer);
+  const ctx: IImageContext = { image, bufferStore: fixtureStore, features: {} };
+  const action = new InterlaceAction();
+  await action.process(ctx, 'interlace,1'.split(','));
+  const { info } = await ctx.image.toBuffer({ resolveWithObject: true });
+  expect(info.format).toBe(sharp.format.gif.id);
+});
