@@ -19,6 +19,10 @@ import { RoundedCornersAction } from './rounded-corners';
 import { SharpenAction } from './sharpen';
 import { WatermarkAction } from './watermark';
 
+sharp.cache({ items: 3000 });
+sharp.cache({ files: 2000 });
+sharp.cache({ memory: 5500 });
+
 export interface IImageInfo {
   [key: string]: { value: string };
 }

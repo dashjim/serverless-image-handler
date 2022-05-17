@@ -5,6 +5,7 @@ import * as Koa from 'koa'; // http://koajs.cn
 import * as bodyParser from 'koa-bodyparser';
 import * as logger from 'koa-logger';
 import * as Router from 'koa-router';
+import * as sharp from 'sharp';
 import config from './config';
 import debug from './debug';
 import { bufferStore, getProcessor, parseRequest } from './default';
@@ -50,11 +51,27 @@ router.get(['/debug', '/_debug'], async (ctx) => {
   ctx.body = debug();
 });
 
+let TASK_COUNTER:number = 0;
+
 router.get('/(.*)', async (ctx) => {
-  const { data, type, headers } = await ossprocess(ctx, bypass);
-  ctx.body = data;
-  ctx.type = type;
-  ctx.set(headers);
+  TASK_COUNTER += 1;
+  try {
+    if (TASK_COUNTER > 5) {
+      ctx.status = 429;
+      return;
+    }
+    const cnt = sharp.counters();
+    console.log('>>> task: ' + cnt);
+
+    const { data, type, headers } = await ossprocess(ctx, bypass);
+    ctx.body = data;
+    ctx.type = type;
+    ctx.set(headers);
+  } finally {
+    if (TASK_COUNTER > 0) {
+      TASK_COUNTER -= 1;
+    }
+  }
 });
 
 app.use(router.routes());
@@ -85,7 +102,9 @@ function errorHandler(): Koa.Middleware<Koa.DefaultState, Koa.DefaultContext, an
         name: err.name,
         message: err.message,
       };
-
+      if (TASK_COUNTER > 0) {
+        TASK_COUNTER -= 1;
+      }
       ctx.app.emit('error', err, ctx);
     }
   };
@@ -146,6 +165,7 @@ async function validatePostRequest(ctx: Koa.ParameterizedContext) {
 }
 
 function bypass() {
+  // TODO - Should we reduce counter here?
   // NOTE: This is intended to tell CloudFront to directly access the s3 object.
   throw new HttpErrors[403]('Please visit s3 directly');
 }
